@@ -16,10 +16,11 @@ class Enc
   }
 
 
-  public function leer_archivo()
+  public function leer_archivo($file)
   {
     $i = 1;
-    $archivo = fopen("archivo2.txt", "r");
+    $archivo = fopen($file, "r");
+    $player = rand(1, 2); // ganador aleatorio si no existen diferencias en todas las rondas
 
     while (!feof($archivo))
     {
@@ -27,23 +28,30 @@ class Enc
       if ($i == 1)
       {
         $this->n = (int)$get;
+        if ($this->n > 10000) // de n ser mayor a 10000 guarda los valores por defecto
+        {
+          fclose($archivo);
+          $file = fopen("result.txt", "w");
+          fwrite($file, $player . " " . $this->ini_points . PHP_EOL);
+          fclose($file);
+          exit();
+        }
       }
       else
       {
-
         $parts = explode(" ", $get);
-        $this->m1 = (int)$parts[0];
-        $this->m2 = (int)$parts[1];
-        $absolut = $this->m1 - $this->m2;
+        $this->m1 += (int)$parts[0];
+        $this->m2 += (int)$parts[1];
+        $absolut = $this->m1 - $this->m2; // diferencia del acumulado
 
-        if (abs($absolut) > $this->ini_points)
+        if (abs($absolut) > $this->ini_points) // comparamos que la diferencia sea mayor que la anterior
         {
-          if ($absolut > 0)
+          if ($absolut > 0) // la diferencia es positiva gana jugador 1
           {
             $this->ini_points = abs($absolut);
             $player = 1;
           }
-          elseif ($absolut < 0)
+          elseif ($absolut < 0) // la diferencia es negativa gana jugador 2
           {
             $this->ini_points = abs($absolut);
             $player = 2;
@@ -55,11 +63,27 @@ class Enc
 
     fclose($archivo);
 
-    $file = fopen("result2.txt", "w");
+    $file = fopen("result.txt", "w");
     fwrite($file, $player . " " . $this->ini_points . PHP_EOL);
     fclose($file);
   }
 }
 
 $encrypt = new Enc();
-$encrypt->leer_archivo();
+
+
+$argumentos = getopt("f:");
+
+if (!isset($argumentos["f"]))
+{
+  exit("Modo de uso:
+-f Ingrese archivo con extension .txt");
+}
+$file = $argumentos["f"];
+
+if (!file_exists($file))
+{
+  exit("El archivo especificado no existe, asegurese de ingresar un archivo existente en la misma carpeta");
+}
+
+$encrypt->leer_archivo($file);

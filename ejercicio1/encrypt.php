@@ -20,10 +20,11 @@ class Enc
   }
 
 
-  public function read_file()
+  public function read_file($file)
   {
-    $archivo = fopen("archivo.txt", "r");
+    $archivo = fopen($file, "r");
     $i = 1;
+
     while (!feof($archivo))
     {
       $get = trim(fgets($archivo));
@@ -52,10 +53,32 @@ class Enc
     $sus = "$1";
     $this->message =  preg_replace('/(.)\1+/mi', $sus, $this->message); // eliminamos todas las caracteres simultaneos repetidos
 
-    /* Por cada linea se busca la coincidenacia*/
+    /*
+    Se valida que la longitud del mensaje este en el rango especificado y que 
+    se encuentre dentro de la expresión regular (solo letras y numeros)
+    */
 
-    $this->find_text($this->message, $this->str_1, $this->m1);
-    $this->find_text($this->message, $this->str_2, $this->m2);
+    if (($this->n >= 3 && $this->n <= 5000) && (preg_match("/^[a-zA-Z0-9]+$/", $this->message)))
+    {
+      /*
+      Se valida que si se encontró la primer coincidencia, 
+      si no se encuentra busca la segundo string
+      */
+      if ($this->find_text($this->message, $this->str_1, $this->m1) == "NO")
+      {
+        $this->find_text($this->message, $this->str_2, $this->m2);
+      }
+      else
+      {
+        $this->save_result("NO");
+      }
+    }
+
+    else
+    {
+      $this->save_result("NO");
+      $this->save_result("NO");
+    }
   }
 
   private function find_text($message, $string, $length)
@@ -63,12 +86,18 @@ class Enc
 
     $text = "NO";
 
+    /*
+    Se valida que el la cadena se encuentra en el mensaje 
+    y que la cadena tenga la longitud especificada
+    */
     if (str_contains($message, $string) && ($length >= 2 && $length <= 50))
     {
       $text = "SI";
     }
 
     $this->save_result($text);
+
+    return $text;
   }
 
   private function save_result($string)
@@ -81,6 +110,20 @@ class Enc
   }
 }
 
+$argumentos = getopt("f:");
+
+if (!isset($argumentos["f"]))
+{
+  exit("Modo de uso:
+-f Ingrese archivo con extension .txt");
+}
+$file = $argumentos["f"];
+
+if (!file_exists($file))
+{
+  exit("El archivo especificado no existe, asegurese de ingresar un archivo existente en la misma carpeta");
+}
+
 $encrypt = new Enc();
-$encrypt->read_file();
+$encrypt->read_file($file);
 $encrypt->find_coincidences();
