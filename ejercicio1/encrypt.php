@@ -35,13 +35,32 @@ class Enc
         $this->m1 = (int)$parts[0];
         $this->m2 = (int)$parts[1];
         $this->n = (int)$parts[2];
+
+        if (!is_numeric($this->m1) || !is_numeric($this->m2) || !is_numeric($this->n)) // se valida que la entrada de la primera linea este compuesta solo por numeros
+        {
+          $file = fopen("result.txt", "w");
+          fclose($file);
+          $this->save_result("NO");
+          $this->save_result("NO");
+          exit();
+        }
       }
-      elseif ($i == 2) $this->str_1 = $get;
-      elseif ($i == 3) $this->str_2 = $get;
-      elseif ($i == 4) $this->message = $get;
+      elseif ($i == 2) $this->str_1 = trim($get);
+      elseif ($i == 3) $this->str_2 = trim($get);
+      elseif ($i == 4) $this->message = trim($get);
 
       $i++;
     }
+
+    if (strlen($this->str_1) != $this->m1 || strlen($this->str_2) != $this->m2 || strlen($this->message) != $this->n) // no concuerdan los datos especificados de longitud con los datos ingresados
+    {
+      $file = fopen("result.txt", "w");
+      fclose($file);
+      $this->save_result("NO");
+      $this->save_result("NO");
+      exit();
+    }
+
     fclose($archivo);
 
     $file = fopen("result.txt", "w");
@@ -78,6 +97,7 @@ class Enc
     {
       $this->save_result("NO");
       $this->save_result("NO");
+      exit();
     }
   }
 
@@ -90,7 +110,9 @@ class Enc
     Se valida que el la cadena se encuentra en el mensaje 
     y que la cadena tenga la longitud especificada
     */
-    if (str_contains($message, $string) && ($length >= 2 && $length <= 50))
+
+    // if (str_contains($message, $string) && ($length >= 2 && $length <= 50)) funcion utilizada desde PHP 8
+    if (strlen($string) <= strlen($message) && strpos($message, $string) !== false && ($length >= 2 && $length <= 50) && (preg_match("/^[a-zA-Z0-9]+$/", $message))) // si la cadena es menor igual al mensaje, si se encuentra la cadena en el mesaje y si la cadena esta en un rango permitido de 2 a 50 caracteres, que la cadena a buscar solo cuente con letra y numeros
     {
       $text = "SI";
     }
@@ -100,7 +122,7 @@ class Enc
     return $text;
   }
 
-  private function save_result($string)
+  public function save_result($string)
   {
     $file = fopen("result.txt", "a");
 
@@ -125,5 +147,20 @@ if (!file_exists($file))
 }
 
 $encrypt = new Enc();
+
+$lines = count(file($file));
+
+// echo $lines;
+
+if ($lines != 4) // el archivo debera contener 4 lineas
+{
+  $text = "NO";
+  $file = fopen("result.txt", "w");
+  fclose($file);
+  $encrypt->save_result($text);
+  $encrypt->save_result($text);
+  exit();
+}
+
 $encrypt->read_file($file);
 $encrypt->find_coincidences();

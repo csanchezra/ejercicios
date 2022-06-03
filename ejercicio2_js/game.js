@@ -2,7 +2,7 @@ var m1 = 0;
 var m2 = 0;
 var n = 0;
 var ini_points = 0;
-var player_win = 0;
+var player_win = Math.floor(Math.random() * 2) + 1;
 
 document.getElementById('inputfile')
     .addEventListener('change', function ()
@@ -10,16 +10,26 @@ document.getElementById('inputfile')
         let fr = new FileReader();
         fr.onload = function ()
         {
-
             let lines = fr.result.split('\n');
+            validar_lineas(lines);
+
             for (let line = 0; line < lines.length; line++)
             {
-                if (line == 0) n = lines[line];
+                if (line == 0)
+                {
+                    n = lines[line];
+                    if (!isNum(n)) WriteToFile();
+                    if (lines - 1 != n) WriteToFile();
+                    if (n > 10000) WriteToFile();
+                }
                 else
                 {
                     let porciones = lines[line].split(' ');
+
+                    if (!isNum(porciones[0]) || !isNum(porciones[1])) WriteToFile();
                     m1 = porciones[0];
                     m2 = porciones[1];
+
 
                     var absolut = m1 - m2;
 
@@ -48,6 +58,15 @@ document.getElementById('inputfile')
         console.info(player_win)
     })
 
+function validar_lineas(lineas)
+{
+    if (lineas > 10001 || lineas < 2)
+    {
+        WriteToFile()
+    }
+}
+
+
 function WriteToFile()
 {
     var file = document.getElementById("inputfile");
@@ -72,6 +91,7 @@ function WriteToFile()
         m2 = 0;
         n = 0;
         ini_points = 0;
-        player_win = 0;
+        player_win = Math.floor(Math.random() * 2) + 1;
     }
+    // return false;
 }
