@@ -8,6 +8,7 @@ class Enc
   public $str_1;
   public $str_2;
   public $message;
+  public $total_mensajes;
 
   public function __construct()
   {
@@ -17,6 +18,7 @@ class Enc
     $this->str_1 = '';
     $this->str_2 = '';
     $this->message = '';
+    $this->total_mensajes = 0;
   }
 
 
@@ -32,19 +34,20 @@ class Enc
       if ($i == 1)
       {
         $parts = explode(" ", $get);
+
+        $this->numeric($parts[0], "m1");
+        $this->numeric($parts[1], "m2");
+        $this->numeric($parts[2], "n");
+
         $this->m1 = (int)$parts[0];
         $this->m2 = (int)$parts[1];
         $this->n = (int)$parts[2];
 
-        if (!is_numeric($this->m1) || !is_numeric($this->m2) || !is_numeric($this->n)) // se valida que la entrada de la primera linea este compuesta solo por numeros
-        {
-          $file = fopen("result.txt", "w");
-          fclose($file);
-          $this->save_result("NO");
-          $this->save_result("NO");
-          exit();
-        }
+        $this->longitud($this->m1, 2, 50, "m1");
+        $this->longitud($this->m2, 2, 50, "m2");
+        $this->longitud($this->n, 3, 5000, "n");
       }
+
       elseif ($i == 2) $this->str_1 = trim($get);
       elseif ($i == 3) $this->str_2 = trim($get);
       elseif ($i == 4) $this->message = trim($get);
@@ -52,13 +55,21 @@ class Enc
       $i++;
     }
 
+
+    if ($this->m1 == 0  || $this->m2 == 0  || $this->n == 0  || $this->str_1 == '' || $this->str_2 == '' || $this->message == '')
+      $this->mensaje_error("La entrada del archivo no corresponde al especificado");
+
+    if (!(preg_match('/^[a-zA-Z0-9]+$/', $this->message)))
+    {
+      $this->mensaje_error("El mensaje incluye caracteres inválidos, deberán ser [a-zA-Z0-9]");
+    }
+
+    $this->caracteres_duplicados($this->str_1, "1");
+    $this->caracteres_duplicados($this->str_2, "2");
+
     if (strlen($this->str_1) != $this->m1 || strlen($this->str_2) != $this->m2 || strlen($this->message) != $this->n) // no concuerdan los datos especificados de longitud con los datos ingresados
     {
-      $file = fopen("result.txt", "w");
-      fclose($file);
-      $this->save_result("NO");
-      $this->save_result("NO");
-      exit();
+      $this->mensaje_error("La longitud especificada en los parametros de la primera linea no corresponden a las longitudes de las entradas");
     }
 
     fclose($archivo);
@@ -77,28 +88,18 @@ class Enc
     se encuentre dentro de la expresión regular (solo letras y numeros)
     */
 
-    if (($this->n >= 3 && $this->n <= 5000) && (preg_match("/^[a-zA-Z0-9]+$/", $this->message)))
-    {
-      /*
+
+
+    /*
       Se valida que si se encontró la primer coincidencia, 
       si no se encuentra busca la segundo string
       */
-      if ($this->find_text($this->message, $this->str_1, $this->m1) == "NO")
-      {
-        $this->find_text($this->message, $this->str_2, $this->m2);
-      }
-      else
-      {
-        $this->save_result("NO");
-      }
-    }
 
-    else
-    {
-      $this->save_result("NO");
-      $this->save_result("NO");
-      exit();
-    }
+    $this->find_text($this->message, $this->str_1, $this->m1);
+    $this->find_text($this->message, $this->str_2, $this->m2);
+
+    if ($this->total_mensajes > 1)
+      $this->mensaje_error("Se encontro mas de una intrucción en el mensaje");
   }
 
   private function find_text($message, $string, $length)
@@ -112,14 +113,53 @@ class Enc
     */
 
     // if (str_contains($message, $string) && ($length >= 2 && $length <= 50)) funcion utilizada desde PHP 8
-    if (strlen($string) <= strlen($message) && strpos($message, $string) !== false && ($length >= 2 && $length <= 50) && (preg_match("/^[a-zA-Z0-9]+$/", $message))) // si la cadena es menor igual al mensaje, si se encuentra la cadena en el mesaje y si la cadena esta en un rango permitido de 2 a 50 caracteres, que la cadena a buscar solo cuente con letra y numeros
+    if (strpos($message, $string) !== false) //  si se encuentra la cadena en el mensaje
     {
       $text = "SI";
+      $this->total_mensajes++;
     }
 
     $this->save_result($text);
 
     return $text;
+  }
+
+  private function numeric($dato, $variable)
+  {
+    if (!is_numeric($dato))
+    {
+      $this->mensaje_error("El parámetro " . $variable . " no es númerico");
+    }
+  }
+
+  private function longitud($dato, $lim_inf, $lim_sup, $variable)
+  {
+    if ($dato < $lim_inf)
+    {
+      $this->mensaje_error("El parámetro " . $variable . " es menor a " . $lim_inf);
+    }
+    elseif ($dato > $lim_sup)
+    {
+      $this->mensaje_error("El parámetro " . $variable . " es mayor a " . $lim_sup);
+    }
+  }
+
+  private function caracteres_duplicados($dato, $variable)
+  {
+    $sus = "$1";
+    $dato_limpio =  preg_replace('/(.)\1+/mi', $sus, $dato); // eliminamos todas las caracteres simultaneos repetidos
+    if (strlen($dato) > strlen($dato_limpio))
+      echo ("La instrucción " . $variable . " contiene caracteres repetidos simultaneos");
+  }
+
+  private function mensaje_error($mensaje)
+  {
+    $text = "NO";
+    $file = fopen("result.txt", "w");
+    fclose($file);
+    $this->save_result($text);
+    $this->save_result($text);
+    exit($mensaje);
   }
 
   public function save_result($string)

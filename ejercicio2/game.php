@@ -6,7 +6,6 @@ class Enc
   public $m2;
   public $n;
   public $ini_points;
-  public $random_winner;
 
   public function __construct()
   {
@@ -14,7 +13,6 @@ class Enc
     $this->m2 = 0;
     $this->n = 0;
     $this->ini_points = 0;
-    $this->random_winner = rand(1, 2);
   }
 
 
@@ -22,33 +20,68 @@ class Enc
   {
     $i = 1;
     $archivo = fopen($file, "r");
-    $player = $this->random_winner; // ganador aleatorio si no existen diferencias en todas las rondas
+    $player = rand(1, 2); // ganador aleatorio si no existen diferencias en todas las rondas
 
     while (!feof($archivo))
     {
       $get = trim(fgets($archivo));
       if ($i == 1)
       {
-
         $this->n = (int)$get;
-        if (!is_numeric($this->n)) $this->save($this->random_winner, 0); // se valida que el valor de rondas sea numerico
-        if ($lines - 1 != $this->n) $this->save($this->random_winner, 0); // se se valida que el numero de rondas especificado sea el mismo que tiene el archivo
+
+        if (!is_numeric($get))
+        {
+          $this->save_random();
+          $this->mensaje_error("El numero de rondas no es numérico");
+        }
+
         if ($this->n > 10000) // de n ser mayor a 10000 guarda los valores por defecto
         {
-          fclose($archivo);
-          $this->save($player, $this->ini_points);
-          exit();
+          $this->save_random();
+          $this->mensaje_error("El número de rondas es mayor a lo permitido 10000");
         }
+
+        if ($lines - 1 < $this->n)
+        {
+          $this->save_random();
+          $this->mensaje_error("El numero de rondas especificado es menor a la entrada");
+        }
+
+        if ($lines - 1 > $this->n)
+        {
+          $this->save_random();
+          $this->mensaje_error("El numero de rondas especificado es mayor a la entrada");
+        }
+
+        // se se valida que el numero de rondas especificado sea el mismo que tiene el archivo
+
       }
       else
       {
         $parts = explode(" ", $get);
+        $valores_ronda = count($parts);
+        if ($valores_ronda > 2)
+        {
+          echo ("Los valores de la ronda " . ($i - 1) . " es mas de lo permitido= " . $valores_ronda);
+          break;
+        }
 
-        if (!is_numeric($parts[0]) || !is_numeric($parts[1])) $this->save($player, $this->ini_points); // se valida que el valor de la ronda se numerico, gana el que tenia la mayor diferencia en la ronda anterior si no se encuentra numero en la ronda
+        if (!is_numeric($parts[0]))
+        {
+          $player = 2;
+          echo ("El valor de la ronda " . ($i - 1) . " para el jugador 1 no es numérico, termina el conteo");
+          break;
+        }
+
+        if (!is_numeric($parts[1]))
+        {
+          $player = 1;
+          echo ("El valor de la ronda " . ($i - 1) . " para el jugador 2 no es numérico, termina el conteo");
+          break;
+        }
 
         $this->m1 += (int)$parts[0];
         $this->m2 += (int)$parts[1];
-
         $absolut = $this->m1 - $this->m2; // diferencia del acumulado
 
         if (abs($absolut) > $this->ini_points) // comparamos que la diferencia sea mayor que la anterior
@@ -69,14 +102,23 @@ class Enc
     }
 
     fclose($archivo);
+
+    $file = fopen("result.txt", "w");
+    fwrite($file, $player . " " . $this->ini_points . PHP_EOL);
+    fclose($file);
   }
 
-  public function save($player, $points)
+  public function mensaje_error($mensaje)
+  {
+    exit($mensaje);
+  }
+
+  public function save_random()
   {
     $file = fopen("result.txt", "w");
-    fwrite($file, $player . " " . $points . PHP_EOL);
+    fwrite($file, rand(1, 2) . " " . 0 . PHP_EOL);
     fclose($file);
-    exit();
+    // exit();
   }
 }
 
@@ -101,7 +143,8 @@ $lines = count(file($file));
 
 if ($lines > 10001 || $lines < 2) // condicion si el archivo contiene mas lineas de las permitidas
 {
-  $encrypt->save(rand(1, 2), 0);
+  $encrypt->save_random(rand(1, 2), 0);
+  $encrypt->mensaje_error("El archivo no cuenta con las lineas permitidas");
 }
 
 $encrypt->leer_archivo($file, $lines);
